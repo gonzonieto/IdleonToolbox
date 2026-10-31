@@ -1,3 +1,4 @@
+import { sitePath } from '@utility/site-path';
 import React from 'react';
 import { Breadcrumbs, Link, Typography } from '@mui/material';
 import { navigateOnPlainClick } from './links';
@@ -9,7 +10,7 @@ import { navigateOnPlainClick } from './links';
 const WikiBreadcrumbs = ({ crumbs, onGo }) => <Breadcrumbs aria-label={'breadcrumb'} separator={'/'} sx={{ typography: 'body2' }}>
   {crumbs.map(({ label, href }, i) => {
     if (href) {
-      return <Link key={i} href={href} variant={'body2'} underline={'hover'}
+      return <Link key={i} href={sitePath(href)} variant={'body2'} underline={'hover'}
                    onClick={navigateOnPlainClick(onGo, href, true)}>
         {label}
       </Link>;

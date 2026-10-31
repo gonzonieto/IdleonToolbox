@@ -1,3 +1,4 @@
+import { sitePath } from '@utility/site-path';
 import React from 'react';
 import { Box, Chip, Link, Stack, Typography } from '@mui/material';
 import Tooltip from '@components/Tooltip';
@@ -32,7 +33,7 @@ const Reward = ({ item, amount, onNavigate, hrefFor, id }) => {
         {item.navigable === false
           ? <Typography variant={'caption'} color={'text.secondary'}>{count}{label}</Typography>
           : <Link
-            href={href}
+            href={sitePath(href)}
             variant={'caption'}
             underline={'hover'}
             color={'text.secondary'}
@@ -103,7 +104,7 @@ const NpcQuestRow = ({ index, edge, other: quest, otherId, onNavigate, hrefFor }
 
     <Stack direction={'row'} gap={1} alignItems={'center'} flexWrap={'wrap'}>
       <Link
-        href={href}
+        href={sitePath(href)}
         variant={'body2'}
         fontWeight={600}
         underline={'hover'}

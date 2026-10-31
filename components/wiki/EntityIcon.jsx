@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box } from '@mui/material';
+import { sitePath } from '@utility/site-path';
 
 // NPCs and quests carry no icon, and the build nulls the 135 paths whose art the game never
 // shipped. Both cases collapse to an empty box of the same size so the rows stay aligned. The
@@ -12,7 +13,7 @@ const EntityIcon = ({ node, size, loading }) => {
   const [broken, setBroken] = useState(false);
   if (!node?.icon || broken) return <Box sx={{ width: size, height: size, flexShrink: 0 }}/>;
   return <img
-    src={node.icon}
+    src={sitePath(node.icon)}
     alt=""
     width={size}
     height={size}

@@ -1010,7 +1010,7 @@ export const isValidUrl = (url) => {
 
 
 export const worldsArray = ['World 1', 'World 2', 'World 3', 'World 4', 'World 5', 'World 6', 'World 7'];
-export const prefix = isProd ? '/' : '/';
+export const prefix = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/`;
 
 export const excludedPortals = {
   0: [0],

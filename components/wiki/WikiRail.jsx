@@ -1,3 +1,4 @@
+import { sitePath } from '@utility/site-path';
 import React, { useState } from 'react';
 import { Box, Collapse, Divider, IconButton, List, ListItem, ListItemButton, ListItemText, ListSubheader, Stack } from '@mui/material';
 import ExpandLess from '@mui/icons-material/ExpandLess';
@@ -46,7 +47,7 @@ const SystemFold = ({ system, startOpen, selected, go, children }) => {
                   aria-label={`${open ? 'Hide' : 'Show'} ${system.label} categories`} sx={{ ml: '13px' }}>
         {open ? <ExpandLess fontSize={'small'}/> : <ExpandMore fontSize={'small'}/>}
       </IconButton>
-      <ListItemButton component={'a'} href={href} selected={selected} onClick={(event) => go(event, href)}
+      <ListItemButton component={'a'} href={sitePath(href)} selected={selected} onClick={(event) => go(event, href)}
                       sx={{ pl: '7px' }}>
         <ListItemText primary={system.label} slotProps={{ primary: { fontWeight: 500 } }}/>
       </ListItemButton>
@@ -120,7 +121,7 @@ const WikiRail = ({ current, currentSystem = null, children }) => {
       borderRadius: 1
     }}>
       <List dense disablePadding>
-        <ListItemButton component={'a'} href={'/wiki'} selected={!current && !currentSystem}
+        <ListItemButton component={'a'} href={sitePath('/wiki')} selected={!current && !currentSystem}
                         onClick={(event) => go(event, '/wiki')}>
           <ListItemText primary={'Wiki Home'} slotProps={{ primary: { fontWeight: 600 } }}/>
         </ListItemButton>
@@ -128,7 +129,7 @@ const WikiRail = ({ current, currentSystem = null, children }) => {
                                                 go={go}/>)}
         {/* Below the divider because it is not a category: it cuts across all of them. */}
         <Divider sx={{ my: 0.5 }}/>
-        <ListItemButton component={'a'} href={'/wiki/changelog'} selected={current === 'changelog'}
+        <ListItemButton component={'a'} href={sitePath('/wiki/changelog')} selected={current === 'changelog'}
                         onClick={(event) => go(event, '/wiki/changelog')}>
           <ListItemText primary={'Changelog'}/>
         </ListItemButton>

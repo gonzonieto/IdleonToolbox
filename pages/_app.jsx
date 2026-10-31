@@ -62,7 +62,7 @@ const MyApp = (props) => {
   const pageSeo = PAGE_SEO[pathname];
   const noindex = pageProps?.seoNoindex ?? pageSeo?.noindex;
   // A redirect page (a wiki URL that moved) names the page it forwards to through static props.
-  const canonicalUrl = `https://idleontoolbox.com${pageProps?.seoCanonical ?? asPath.split('?')[0].split('#')[0]}`;
+  const canonicalUrl = `${process.env.NEXT_PUBLIC_IT_URL || 'https://idleontoolbox.com'}${pageProps?.seoCanonical ?? asPath.split('?')[0].split('#')[0]}`;
   const isGdprRegion = useGdprRegion();
   const { title: staticTitle, description: staticDescription } = resolveSeoHead({ pageProps, pageSeo });
   const pageIcon = pageIconFor(pathname);

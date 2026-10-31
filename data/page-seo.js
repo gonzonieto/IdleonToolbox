@@ -114,6 +114,7 @@ export const PAGE_SEO = {
   "/tools/item-database": { title: "Item Database | Idleon Toolbox", description: "Browse and search the complete Legends of Idleon item database with filters by type, stats, and crafting recipes" },
   "/tools/item-planner": { title: "Item Planner | Idleon Toolbox", description: "Useful tool to keep track of your crafting projects by tracking existing and missing materials" },
   "/tools/material-tracker": { title: "Material Tracker | Idleon Toolbox", description: "Add a material, set your own threshold and keep track of your inventory." },
+  "/tools/progression-advisor": { title: "Progression Advisor | Idleon Toolbox", description: "Local, explainable progression checks for damage and drop rate." },
   "/tools/sampling-companion": { title: "Sampling Companion | Idleon Toolbox", description: "Find out what your character needs for optimal sampling setups" },
   "/tools/wardrobe": { title: "Wardrobe | Idleon Toolbox", description: "Dress a Legends of Idleon character in any hat, weapon, cape, costume, trophy, nametag or companion and watch it move the way the game draws it" },
   "/wiki": { title: "Wiki | Idleon Toolbox", description: "Search every Legends of Idleon item, monster, NPC and quest to see what drops it, what it crafts, and which quests use it" },

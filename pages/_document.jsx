@@ -2,6 +2,7 @@ import * as React from 'react';
 import Document, { Head, Html, Main, NextScript } from 'next/document';
 import createEmotionServer from '@emotion/server/create-instance';
 import createEmotionCache from '../utility/createEmotionCache';
+import { sitePath } from '../utility/site-path';
 
 export default class MyDocument extends Document {
   render() {
@@ -25,10 +26,10 @@ export default class MyDocument extends Document {
           <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
           <meta name="theme-color" content="#141A21" />
           
-          <link rel="icon" type="image/png" sizes="32x32" href="/data/Coins5.png" />
-          <link rel="icon" type="image/png" sizes="16x16" href="/data/Coins5.png" />
-          <link rel="apple-touch-icon" href="/data/Coins5.png" />
-          <link rel="manifest" href="/site.webmanifest" />
+          <link rel="icon" type="image/png" sizes="32x32" href={sitePath('/data/Coins5.png')} />
+          <link rel="icon" type="image/png" sizes="16x16" href={sitePath('/data/Coins5.png')} />
+          <link rel="apple-touch-icon" href={sitePath('/data/Coins5.png')} />
+          <link rel="manifest" href={sitePath('/site.webmanifest')} />
           
           {/* Preconnect to important domains */}
           <link rel="preconnect" href="https://fonts.googleapis.com" />

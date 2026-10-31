@@ -9,7 +9,8 @@ const workers = existsSync(WORKER_MANIFEST) ? readFileSync(WORKER_MANIFEST, 'utf
 
 module.exports = {
   reactStrictMode: false,
-  assetPrefix: '/',
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
+  assetPrefix: process.env.NEXT_PUBLIC_BASE_PATH || '/',
   output: 'export',
   reactCompiler: true,
   // The build's type check reports errors only in .ts/.tsx (no checkJs), but tsconfig.json's

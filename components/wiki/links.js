@@ -1,11 +1,12 @@
 import { useRouter } from 'next/router';
 import { sessionQuery } from '@utility/nav-query';
+import { sitePath } from '@utility/site-path';
 
 // Real anchors so the exported HTML carries every link and modified clicks behave. A plain click
 // still goes through the router, which keeps the session query (demo, profile) on the URL.
 export const linkProps = (hrefFor, id) => {
   const href = hrefFor?.(id);
-  return href ? { href } : { component: 'button', type: 'button' };
+  return href ? { href: sitePath(href) } : { component: 'button', type: 'button' };
 };
 
 // Ctrl, cmd, shift, alt and middle-click belong to the browser: a new tab or window, not an in-app hop.

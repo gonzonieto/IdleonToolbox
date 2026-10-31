@@ -276,6 +276,9 @@ export const PAGES = {
 
   },
   TOOLS: {
+    'progressionAdvisor': {
+      icon: 'data/TaskSc6'
+    },
     'cardSearch': {
       icon: 'data/2CardsA0'
     },

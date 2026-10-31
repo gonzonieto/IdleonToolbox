@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { sitePath } from '@utility/site-path';
 import { Box, Card, CardContent, Chip, Link, Stack, Typography } from '@mui/material';
 import CardBonus, { cardBonusShows } from './CardBonus';
 import InfoBox, { visibleGroups } from './InfoBox';
@@ -306,7 +307,7 @@ const AnimationTile = ({ src, alt }) => {
   const [broken, setBroken] = useState(false);
   if (broken) return null;
   return <Stack alignItems={'center'} gap={0.5}>
-    <img src={src} alt={alt} width={72} height={72} loading={'lazy'} style={{ objectFit: 'contain' }}
+    <img src={sitePath(src)} alt={alt} width={72} height={72} loading={'lazy'} style={{ objectFit: 'contain' }}
          onError={() => setBroken(true)}/>
     <Typography variant={'caption'} color={'text.secondary'}>{alt}</Typography>
   </Stack>;
@@ -554,7 +555,7 @@ const EntityPanel = ({ index, id, onNavigate, onGo, hrefFor }) => {
           they span the card and the title sits under them. */}
       {WIDE_HEADER[node.kind] && node.icon && !node.petMart && !node.starterOffer ? <Box
         component={'img'}
-        src={node.icon}
+        src={sitePath(node.icon)}
         alt={''}
         sx={{ width: '100%', maxWidth: WIDE_HEADER[node.kind], height: 'auto', borderRadius: 1, mb: 1.5 }}
       /> : null}
@@ -698,7 +699,7 @@ const EntityPanel = ({ index, id, onNavigate, onGo, hrefFor }) => {
               so it sits in the rail, under the infobox that holds the facts it does not show. */}
           {node.starterOffer && node.icon ? <Box
             component={'img'}
-            src={node.icon}
+            src={sitePath(node.icon)}
             alt={''}
             sx={{ width: 268, maxWidth: '100%', height: 'auto', alignSelf: 'center', borderRadius: 1 }}
           /> : null}

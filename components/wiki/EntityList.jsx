@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { sitePath } from '@utility/site-path';
 import { Box, Chip, Link, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import EntityIcon from './EntityIcon';
 import GemCount from './GemCount';
@@ -25,7 +26,7 @@ const CHIP_LIMIT = 12;
 const PetMartCard = ({ entry }) => <Stack direction={'row'} gap={1.5} alignItems={'center'}>
   <Box
     component={'img'}
-    src={entry.node.icon}
+    src={sitePath(entry.node.icon)}
     alt={''}
     sx={{ height: 84, width: 84, objectFit: 'contain', flexShrink: 0 }}
   />
@@ -113,7 +114,7 @@ const Band = ({ band, colour, index, onNavigate, hrefFor, banner, labelOf }) => 
         {entry.node.petMart || entry.node.starterOffer ? <PetMartCard entry={entry}/> : <>
           <Box
             component={'img'}
-            src={entry.node.icon}
+            src={sitePath(entry.node.icon)}
             alt={''}
             sx={{ width: '100%', height: 'auto', borderRadius: 0.5 }}
           />
@@ -138,7 +139,7 @@ const Band = ({ band, colour, index, onNavigate, hrefFor, banner, labelOf }) => 
     {hidden > 0 ? <Box component={'nav'} aria-hidden sx={{ display: 'none' }}>
       {band.entries.slice(rows.length).map((entry) => {
         const href = hrefFor?.(entry.id);
-        return href ? <a key={entry.id} href={href}>{entry.label}</a> : null;
+        return href ? <a key={entry.id} href={sitePath(href)}>{entry.label}</a> : null;
       })}
     </Box> : null}
 

@@ -1,3 +1,4 @@
+import { sitePath } from '@utility/site-path';
 import React, { useState } from 'react';
 import { Box, Link, Stack, TableSortLabel, Typography } from '@mui/material';
 import EntityIcon from './EntityIcon';
@@ -139,7 +140,7 @@ const RowLink = ({ entry, hrefFor, onNavigate, heading }) => {
     return <Link {...linkProps(hrefFor, entry.id)} variant={'body2'} underline={'hover'} textAlign={'left'}
                  onClick={navigateOnPlainClick(onNavigate, entry.id, false)}>{name}</Link>;
   }
-  return <a href={href} className={'row-link'} onClick={navigateOnPlainClick(onNavigate, entry.id, true)}>{name}</a>;
+  return <a href={sitePath(href)} className={'row-link'} onClick={navigateOnPlainClick(onNavigate, entry.id, true)}>{name}</a>;
 };
 
 // A sorted column says so to a screen reader; another sortable one says it could be.
@@ -247,7 +248,7 @@ const ListingTable = ({ columns, bands, sorted, sort, onSortChange, hrefFor, onN
     {hidden.length > 0 ? <Box component={'nav'} aria-hidden sx={{ display: 'none' }}>
       {hidden.map((entry) => {
         const href = hrefFor?.(entry.id);
-        return href ? <a key={entry.id} href={href}>{entry.label}</a> : null;
+        return href ? <a key={entry.id} href={sitePath(href)}>{entry.label}</a> : null;
       })}
     </Box> : null}
   </>;

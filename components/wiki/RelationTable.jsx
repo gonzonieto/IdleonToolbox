@@ -1,3 +1,4 @@
+import { sitePath } from '@utility/site-path';
 import React, { useState } from 'react';
 import { Box, Chip, Link, Stack, TextField, Typography } from '@mui/material';
 import EntityIcon from './EntityIcon';
@@ -138,7 +139,7 @@ const RelationTable = ({ groups, index, onNavigate, hrefFor, showChance }) => {
                 {row.other.navigable === false
                   ? <Typography variant={'body2'}>{label}</Typography>
                   : <Link
-                    href={href}
+                    href={sitePath(href)}
                     variant={'body2'}
                     underline={'hover'}
                     onClick={navigateOnPlainClick(onNavigate, row.otherId, Boolean(href))}
@@ -192,7 +193,7 @@ const RelationTable = ({ groups, index, onNavigate, hrefFor, showChance }) => {
       {hiddenRows.map((row) => {
         const href = hrefFor?.(row.otherId);
         return href && row.other.navigable !== false
-          ? <a key={row.key} href={href}>{entityName(row.other)}</a>
+          ? <a key={row.key} href={sitePath(href)}>{entityName(row.other)}</a>
           : null;
       })}
     </Box> : null}

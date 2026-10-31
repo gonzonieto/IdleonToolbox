@@ -1,56 +1,58 @@
-name: Deploy to Github Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
 
 jobs:
-  deployment:
+  build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v7
         with:
-          # postbuild derives each page's sitemap <lastmod> from that file's last commit date.
-          # The default fetch-depth of 1 leaves one commit of history, which would give every
-          # page the same date - the synthetic value the change was meant to remove.
           fetch-depth: 0
-
-      - name: Use Node.js 24
-        uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
-          cache: 'npm'
-
-      # node_modules is cached: a fresh install took 75 of the job's ~340 seconds. .next/cache is not:
-      # Turbopack's build cache would save ~70s of compile, but it is ~0.8 GB to fetch on every deploy
-      # and would crowd this cache out of the repo's 10 GB.
-      - name: Restore node_modules
-        id: node-modules
-        uses: actions/cache@v6
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node24-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install
-        if: steps.node-modules.outputs.cache-hit != 'true'
+          cache: npm
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Install dependencies
         run: npm ci --legacy-peer-deps --include=dev --no-audit --no-fund
-
-      - name: Build
+      - name: Build static site
         env:
           NODE_ENV: production
-          # Next renders static pages on (cores - 1) workers, 3 on this 4-core runner; the 8,500 pages
-          # are most of the build, and the main process is idle while they render.
           NEXT_BUILD_CPUS: 4
-
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          NEXT_PUBLIC_IT_URL: ${{ steps.pages.outputs.base_url }}
         run: npm run build
-
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Prepare Pages output
+        env:
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          NEXT_PUBLIC_IT_URL: ${{ steps.pages.outputs.base_url }}
+        run: node utility/prepare-pages.mjs
+      - uses: actions/upload-pages-artifact@v3
         with:
-          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-          publish_dir: ./out
-          # One orphan commit per deploy. Without it every export (634 MB now that wiki pages
-          # render at build) stacks onto gh-pages history, which had reached 2,150 commits.
-          force_orphan: true
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
