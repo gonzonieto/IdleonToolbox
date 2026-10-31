@@ -6,40 +6,11 @@ import {
   MenuItem, Select, Stack, Typography
 } from '@mui/material';
 import { AppContext } from '@components/common/context/AppProvider';
-import { getDropRate } from '@parsers/character';
-import { getMaxDamage } from '@parsers/damage';
-import { mainStatMap } from '@parsers/talents';
+import { evaluateUpgrades } from '@utility/advisor/evaluate';
+import { formatAdvisorNumber } from '@utility/advisor/format';
 import { getRecommendations, OBJECTIVES } from '@utility/advisor/engine';
 import { sessionQuery } from '@utility/nav-query';
 import { useRouter } from 'next/router';
-
-// Calculations are deliberately scoped to this page, never the global provider.
-// A fresh save causes recalculation via AppContext; no network or LLM involved.
-const calculateStats = (objective, account, characters, selectedName) => {
-  if (!account || !Array.isArray(characters) || !characters.length) return {};
-  const selected = characters.find((entry) => entry?.name === selectedName) ?? characters[0];
-  if (!selected) return {};
-  if (objective === 'dropRate') {
-    return Object.fromEntries(characters.map((entry) => {
-      try {
-        return [entry.name, { dropRate: getDropRate(entry, account, characters)?.dropRate }];
-      } catch {
-        return [entry.name, { calculationUnavailable: true }]; // Never silently invent a value.
-      }
-    }));
-  }
-  try {
-    const info = getMaxDamage(selected, characters, account);
-    return { [selected.name]: {
-      mainStat: mainStatMap?.[selected.class],
-      maxDamage: info?.maxDamage,
-      hitChance: info?.hitChance,
-      survivability: info?.survivability
-    } };
-  } catch {
-    return { [selected.name]: { calculationUnavailable: true } };
-  }
-};
 
 const ProgressionAdvisor = () => {
   const router = useRouter();
@@ -49,11 +20,12 @@ const ProgressionAdvisor = () => {
   const characters = state?.characters ?? [];
   const activeName = characters.some((entry) => entry?.name === selectedName)
     ? selectedName : characters[0]?.name ?? '';
-  const stats = useMemo(() => calculateStats(objective, state?.account, characters, activeName),
-    [objective, state?.account, characters, activeName]);
+  const evaluation = useMemo(() => state?.emptyAccount ? null : evaluateUpgrades({
+    objective, account: state?.account, characters, characterName: activeName
+  }), [objective, state?.account, state?.emptyAccount, characters, activeName]);
   const result = useMemo(() => getRecommendations({
-    objective, account: state?.account, characters, characterName: activeName, stats
-  }), [objective, state?.account, characters, activeName, stats]);
+    objective, account: state?.account, characters, characterName: activeName, evaluation
+  }), [objective, state?.account, characters, activeName, evaluation]);
   const available = !state?.emptyAccount && Boolean(state?.account && characters.length);
   return <Container maxWidth="lg" sx={{ py: 3 }}>
     <NextSeo title="Progression Advisor | Idleon Toolbox"
@@ -61,10 +33,10 @@ const ProgressionAdvisor = () => {
     <Stack spacing={2}>
       <Typography variant="h4">Progression Advisor</Typography>
       <Typography color="text.secondary">
-        Practical checks from your current save. Priority is a heuristic for what to inspect first, not an optimized upgrade order.
+        Specific upgrades calculated from your current save. Damage means displayed maximum damage, rather than AFK kills or active DPS.
       </Typography>
       <Alert severity="info">
-        Local calculations only. No AI API calls, no game automation, and no projected gains without verified formulas.
+        Each change is evaluated independently with Toolbox’s formulas and checked against current points, caps, and coin balance. Results are ranked by gain; costs are shown separately.
       </Alert>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <FormControl fullWidth size="small">
@@ -85,11 +57,10 @@ const ProgressionAdvisor = () => {
       </Stack>
       {!available ? <Alert severity="warning">Sign in or import your save to receive account-specific advice.</Alert> : null}
       {available ? <>
-        <Typography variant="h6">Where to focus first</Typography>
+        <Typography variant="h6">Calculated upgrades</Typography>
         {result.diagnostics.map((detail) => <Typography variant="body2" color="text.secondary" key={detail}>{detail}</Typography>)}
         {!result.recommendations.length ? <Alert severity="info">
-          No high-confidence opportunities were detected by the current rules. This does not mean your account is optimized;
-          the first version covers only a handful of checks.
+          No affordable improvement was verified among the supported changes. This does not mean your account is optimized.
         </Alert> : null}
         {result.recommendations.map((item, index) => <Card key={item.id} variant="outlined">
           <CardContent>
@@ -97,11 +68,11 @@ const ProgressionAdvisor = () => {
               <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
                 <Typography variant="h6">{index + 1}. {item.title}</Typography>
                 <Stack direction="row" spacing={1}>
-                  <Chip size="small" label={`Priority ${Math.round(item.score)}`}/>
-                  <Chip size="small" variant="outlined" label={`${item.confidence} confidence`}/>
+                  <Chip size="small" label={`+${formatAdvisorNumber(item.gainPercent)}%`}/>
                 </Stack>
               </Stack>
-              <Typography variant="body2">{item.rationale}</Typography>
+              <Typography variant="body2">Current: {formatAdvisorNumber(item.before)}. Increase: +{formatAdvisorNumber(item.after - item.before)} {objective === 'damage' ? 'maximum damage' : 'drop-rate multiplier'}.</Typography>
+              <Typography variant="body2"><strong>Cost:</strong> {item.cost}</Typography>
               <Box component="ul" sx={{ my: 0, pl: 3 }}>
                 {item.evidence.map((fact, i) => <li key={i}><Typography variant="body2">{fact}</Typography></li>)}
               </Box>
@@ -116,7 +87,7 @@ const ProgressionAdvisor = () => {
         </Card>)}
       </> : null}
       <Typography variant="caption" color="text.secondary">
-        Recommendations are based on the current parsed save. Priority scores represent review urgency, not expected damage/drop-rate gains.
+        Coverage: selected learned passive talents and direct damage/drop-rate stamp levels below their unlocked caps. Other systems, material cap increases, and combinations of upgrades are not evaluated. Gains cannot be added together, and the same coins or talent points may fund alternative recommendations.
       </Typography>
     </Stack>
   </Container>;

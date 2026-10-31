@@ -1,35 +1,29 @@
+import '../polyfills';
 import { describe, expect, it } from 'vitest';
 import { parseFixture } from './helpers/parsed-fixtures';
 import raw from '../data/raw.json';
-import { getMaxDamage } from '../parsers/damage';
-import { getDropRate } from '../parsers/character';
-import { mainStatMap } from '../parsers/talents';
+import { evaluateUpgrades } from '../utility/advisor/evaluate';
 import { getRecommendations } from '../utility/advisor/engine';
 
-describe('advisor with a parsed Toolbox save', () => {
-  it('accepts actual damage and drop-rate formula results', () => {
+describe('advisor with real parsed save and formulas', () => {
+  it.each(['damage', 'dropRate'])('evaluates %s without mutating the save', (objective) => {
     const { account, characters } = parseFixture(raw);
-    expect(characters.length).toBeGreaterThan(0);
-    const selected = characters[0];
-    const damage = getMaxDamage(selected, characters, account);
-    expect(Number.isFinite(damage.maxDamage)).toBe(true);
-    expect(Number.isFinite(damage.hitChance)).toBe(true);
-    const damageResult = getRecommendations({
-      objective: 'damage', account, characters, characterName: selected.name,
-      stats: { [selected.name]: { ...damage, mainStat: mainStatMap[selected.class] } }
-    });
-    expect(damageResult.diagnostics.join(' ')).toContain('Displayed maximum damage:');
-    const stats = Object.fromEntries(characters.map((character) => {
-      const { dropRate } = getDropRate(character, account, characters);
-      expect(Number.isFinite(dropRate)).toBe(true);
-      return [character.name, { dropRate }];
-    }));
-    const result = getRecommendations({ objective: 'dropRate', account, characters,
-      characterName: selected.name, stats });
-    expect(result.diagnostics.join(' ')).toContain('Calculated drop rate:');
-    for (const recommendation of [...damageResult.recommendations, ...result.recommendations]) {
-      expect(Number.isFinite(recommendation.score)).toBe(true);
-      expect(recommendation.evidence.length).toBeGreaterThan(0);
+    const before = JSON.stringify({ account, characters });
+    const evaluation = evaluateUpgrades({ objective, account, characters });
+    expect(Number.isFinite(evaluation.baseline)).toBe(true);
+    expect(evaluation.baseline).toBeGreaterThan(0);
+    expect(evaluation.unavailable).toBe(0);
+    if (objective === 'damage') {
+      expect(evaluation.checked).toBeGreaterThan(0);
+      expect(evaluation.actions.length).toBeGreaterThan(0);
     }
+    const result = getRecommendations({ objective, account, characters, evaluation });
+    for (const action of result.recommendations) {
+      expect(action.after).toBeGreaterThan(action.before);
+      expect(action.gainPercent).toBeCloseTo((action.after / action.before - 1) * 100);
+      expect(action.amount).toBeGreaterThanOrEqual(0);
+      expect(action.cost).toBeTruthy();
+    }
+    expect(JSON.stringify({ account, characters })).toBe(before);
   });
 });

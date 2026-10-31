@@ -1,55 +1,31 @@
 import { describe, expect, it } from 'vitest';
 import { getRecommendations } from '../utility/advisor/engine';
 
-const account = {
-  stamps: { combat: [
-    { displayName: 'A', level: 14 }, { displayName: 'B', level: 4 }, { displayName: 'C', level: 6 }
-  ] },
-  alchemy: { bubblesFlat: [
-    { bubbleName: 'DROPPIN_LOADS', level: 7 },
-    { bubbleName: 'FARQUAD_FORCE', level: 12 }
-  ] }
-};
-const characters = [
-  { name: 'Archer', targetMonster: 'slime', talentPointsLeft: [12, 0, 1] },
-  { name: 'Mage', targetMonster: 'slime', talentPointsLeft: [0, 0, 0] }
-];
-
-describe('local progression advisor', () => {
-  it('does not invent recommendations without a parsed account', () => {
-    expect(getRecommendations({ objective: 'damage', characters })).toMatchObject({ recommendations: [] });
+const input = { account: {}, characters: [{ name: 'Advanced', talentPointsLeft: [5000, 5000] }] };
+describe('evaluated progression advisor', () => {
+  it('does not turn thousands of spare points into advice', () => {
+    expect(getRecommendations(input).recommendations).toEqual([]);
   });
-  it('detects a concrete hit-chance bottleneck before generic stamp checks', () => {
-    const result = getRecommendations({
-      account, characters, characterName: 'Archer', objective: 'damage',
-      stats: { Archer: { hitChance: 78, survivability: 100, maxDamage: 2500 } }
-    });
-    expect(result.recommendations[0].id).toBe('damage:accuracy');
-    expect(result.recommendations[0].evidence).toContain('Current hit chance: 78.0%');
-    expect(result.recommendations.some((r) => r.id === 'damage:talents')).toBe(true);
+  it('does not turn low stamps, bubbles or better peers into unevaluated advice', () => {
+    const account = { stamps: { combat: [{ level: 1 }, { level: 2 }] },
+      alchemy: { bubblesFlat: [{ bubbleName: 'FARQUAD_FORCE', level: 1 }] } };
+    expect(getRecommendations({ ...input, account }).recommendations).toEqual([]);
   });
-  it('does not offer hit-chance advice without trustworthy numbers', () => {
-    const result = getRecommendations({ account, characters, objective: 'damage', stats: {} });
-    expect(result.recommendations.some((r) => r.id === 'damage:accuracy')).toBe(false);
+  it('ranks calculated positive gains and suppresses nonpositive or invalid predictions', () => {
+    const result = getRecommendations({ ...input, evaluation: { baseline: 100, checked: 4, actions: [
+      { id: 'small', after: 101, gainPercent: 1 }, { id: 'big', after: 110, gainPercent: 10 },
+      { id: 'zero', after: 100, gainPercent: 0 }, { id: 'bad', after: NaN, gainPercent: NaN }
+    ] } });
+    expect(result.recommendations.map((r) => r.id)).toEqual(['big', 'small']);
+    expect(result.recommendations[0].before).toBe(100);
   });
-  it('compares actual calculated drop-rate values without presenting a promised gain', () => {
-    const result = getRecommendations({
-      account, characters, objective: 'dropRate', characterName: 'Archer',
-      stats: { Archer: { dropRate: 7 }, Mage: { dropRate: 12 } }
-    });
-    expect(result.recommendations[0].id).toBe('dropRate:compare-characters');
-    expect(result.recommendations[0].caveat).toMatch(/NOT a predicted improvement/);
+  it('provides no predictions if the baseline is unavailable', () => {
+    const result = getRecommendations({ ...input, evaluation: { baseline: NaN, actions: [] } });
+    expect(result.recommendations).toEqual([]);
+    expect(result.diagnostics.join(' ')).toContain('could not be calculated');
   });
-  it('is deterministic on identical input and never produces infinite scores', () => {
-    const input = { account, characters, objective: 'damage' };
-    expect(getRecommendations(input)).toEqual(getRecommendations(input));
-    expect(getRecommendations(input).recommendations.every((r) => Number.isFinite(r.score))).toBe(true);
-  });
-  it('ignores unreleased and missing bubble levels', () => {
-    const result = getRecommendations({
-      account: { alchemy: { bubblesFlat: [{ bubbleName: 'DROPPIN_LOADS', level: 0 }] } },
-      characters, objective: 'dropRate'
-    });
-    expect(result.recommendations.some((r) => r.id.includes('bubble'))).toBe(false);
+  it('includes tiny positive gains without an arbitrary threshold', () => {
+    const evaluation = { baseline: 100, checked: 1, actions: [{ id: 'tiny', after: 100.001, gainPercent: 0.001 }] };
+    expect(getRecommendations({ ...input, evaluation }).recommendations).toHaveLength(1);
   });
 });
