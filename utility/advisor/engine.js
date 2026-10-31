@@ -20,10 +20,16 @@ export const getRecommendations = ({ objective = 'damage', account, characters =
   const metric = mode === 'damage' ? 'maximum damage' : 'drop-rate multiplier';
   diagnostics.push(`Current ${metric}: ${formatAdvisorNumber(evaluation.baseline)}.`);
   diagnostics.push(`${evaluation.checked} supported changes evaluated for this character.`);
+  for (const [reason, count] of Object.entries(evaluation.blocked ?? {})) {
+    diagnostics.push(`${count} skipped: ${reason}.`);
+  }
   if (evaluation.unavailable) diagnostics.push(`${evaluation.unavailable} calculations were unavailable and excluded.`);
   result.recommendations = (evaluation.actions ?? []).filter((a) => Number.isFinite(a.after)
     && a.after > evaluation.baseline && Number.isFinite(a.gainPercent) && a.gainPercent > 0)
     .map((a) => ({ ...a, before: evaluation.baseline }))
     .sort((a, b) => b.gainPercent - a.gainPercent || a.id.localeCompare(b.id));
+  result.emptyMessage = evaluation.checked > 0
+    ? 'The evaluated changes produced no positive gain. Skipped or unsupported upgrades have not been ruled out.'
+    : 'No upgrade could be evaluated within the current coverage and resource checks. This does not mean no affordable upgrades exist.';
   return result;
 };

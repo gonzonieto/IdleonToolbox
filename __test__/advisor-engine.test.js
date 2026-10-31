@@ -28,4 +28,11 @@ describe('evaluated progression advisor', () => {
     const evaluation = { baseline: 100, checked: 1, actions: [{ id: 'tiny', after: 100.001, gainPercent: 0.001 }] };
     expect(getRecommendations({ ...input, evaluation }).recommendations).toHaveLength(1);
   });
+  it('distinguishes skipped upgrades from evaluated upgrades with no gain', () => {
+    const skipped = getRecommendations({ ...input, evaluation: { baseline: 100, checked: 0, actions: [], blocked: { 'insufficient coins': 2 } } });
+    expect(skipped.emptyMessage).toContain('does not mean no affordable upgrades exist');
+    expect(skipped.diagnostics.join(' ')).toContain('2 skipped: insufficient coins');
+    const noGain = getRecommendations({ ...input, evaluation: { baseline: 100, checked: 2, actions: [] } });
+    expect(noGain.emptyMessage).toContain('produced no positive gain');
+  });
 });

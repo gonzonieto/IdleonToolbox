@@ -60,7 +60,7 @@ const ProgressionAdvisor = () => {
         <Typography variant="h6">Calculated upgrades</Typography>
         {result.diagnostics.map((detail) => <Typography variant="body2" color="text.secondary" key={detail}>{detail}</Typography>)}
         {!result.recommendations.length ? <Alert severity="info">
-          No affordable improvement was verified among the supported changes. This does not mean your account is optimized.
+          {result.emptyMessage ?? 'The current metric could not be calculated. No upgrade conclusions are available.'}
         </Alert> : null}
         {result.recommendations.map((item, index) => <Card key={item.id} variant="outlined">
           <CardContent>
@@ -87,7 +87,7 @@ const ProgressionAdvisor = () => {
         </Card>)}
       </> : null}
       <Typography variant="caption" color="text.secondary">
-        Coverage: selected learned passive talents and direct damage/drop-rate stamp levels below their unlocked caps. Other systems, material cap increases, and combinations of upgrades are not evaluated. Gains cannot be added together, and the same coins or talent points may fund alternative recommendations.
+        Coverage: selected learned passive talents, direct damage/drop-rate stamps including material cap unlocks, and supported direct-effect alchemy bubbles. Costs include materials, liquids, and eligible atom substitutions with remaining Boron uses. Other systems are not evaluated. Gains cannot be added together, and recommendations may spend the same resources.
       </Typography>
     </Stack>
   </Container>;
