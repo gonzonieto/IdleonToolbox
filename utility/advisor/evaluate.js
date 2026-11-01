@@ -57,7 +57,8 @@ export const evaluateUpgrades = ({ objective = 'damage', account, characters = [
         talentPointsLeft: selected.talentPointsLeft.map((p, i) => i === tabIndex ? p - spend : p)
       };
       if (!character.flatTalents?.some((t) => t.skillIndex === skillIndex)) continue;
-      evaluate({ id: `${mode}:talent:${skillIndex}`, title: `Raise ${label(name)} by ${levelText(spend)}`, levelCount: spend, targetLevel: baseLevel + spend,
+      evaluate({ id: `${mode}:talent:${skillIndex}`, category: 'Talent', icon: `/data/UISkillIcon${talent.talentId ?? skillIndex}.png`,
+        title: `Talent: Raise ${label(name)} by ${levelText(spend)}`, levelCount: spend, targetLevel: baseLevel + spend,
         cost: `${spend.toLocaleString('en-US')} talent points from tab ${tabIndex + 1}`,
         evidence: [`Allocated level ${baseLevel} → ${baseLevel + spend}; current cap ${maxLevel}`],
         nextStep: `On ${selected.name}, spend ${spend.toLocaleString('en-US')} points from tab ${tabIndex + 1} on ${label(name)}.`,
@@ -75,7 +76,8 @@ export const evaluateUpgrades = ({ objective = 'damage', account, characters = [
       if (plan.blocked) block(plan.blocked);
       if (!plan.levels) continue;
       const name = label(stamp.displayName ?? stamp.rawName);
-      evaluate({ id: `${mode}:stamp:${category}:${stamp.rawName}`, title: `Raise ${name} by ${levelText(plan.levels)}`,
+      evaluate({ id: `${mode}:stamp:${category}:${stamp.rawName}`, category: 'Stamp', icon: stamp.rawName ? `/data/${stamp.rawName}.png` : null,
+        title: `Stamp: Raise ${name} by ${levelText(plan.levels)}`,
         levelCount: plan.levels, targetLevel: plan.targetLevel,
         cost: `${formatAdvisorNumber(plan.coins)} coins${plan.capUnlocks ? ` + ${formatAdvisorNumber(plan.materials)} ${label(stamp.itemReq?.name ?? stamp.itemReq?.rawName ?? 'materials')}${plan.gildedCount ? ` + ${plan.gildedCount} gilded ${plan.gildedCount === 1 ? 'stamp' : 'stamps'}` : ''}` : ''}`,
         evidence: [`Level ${stamp.level} → ${plan.targetLevel}; starting cap ${stamp.maxLevel}`,
@@ -112,7 +114,8 @@ export const evaluateUpgrades = ({ objective = 'damage', account, characters = [
     if (!levels) continue;
     const costs = [...totals.values()];
     const name = label(bubble.bubbleName);
-    evaluate({ id: `${mode}:bubble:${bubble.bubbleIndex}`, title: `Raise ${name} by ${levelText(levels)}`,
+    evaluate({ id: `${mode}:bubble:${bubble.bubbleIndex}`, category: 'Bubble', icon: bubble.rawName ? `/data/${bubble.rawName}.png` : null,
+      title: `Bubble: Raise ${name} by ${levelText(levels)}`,
       levelCount: levels, targetLevel: current.level,
       cost: costs.map((c) => `${formatAdvisorNumber(c.amount)} ${label(c.name)}`).join(' + '),
       evidence: [`Bubble level ${bubble.level} → ${current.level}`, 'Each level is priced separately; total materials, liquids and daily uses fit the save.',

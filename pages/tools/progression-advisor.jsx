@@ -10,6 +10,7 @@ import { evaluateUpgrades } from '@utility/advisor/evaluate';
 import { formatAdvisorNumber } from '@utility/advisor/format';
 import { getRecommendations, OBJECTIVES } from '@utility/advisor/engine';
 import { sessionQuery } from '@utility/nav-query';
+import { sitePath } from '@utility/site-path';
 import { useRouter } from 'next/router';
 
 const ProgressionAdvisor = () => {
@@ -74,7 +75,11 @@ const ProgressionAdvisor = () => {
           <CardContent>
             <Stack spacing={1.5}>
               <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
-                <Typography variant="h6">{index + 1}. {item.title}</Typography>
+                <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0 }}>
+                  {item.icon ? <Box component="img" src={sitePath(item.icon)} alt="" width={32} height={32}
+                                    sx={{ objectFit: 'contain', flexShrink: 0, imageRendering: 'pixelated' }}/> : null}
+                  <Typography variant="h6">{index + 1}. {item.title}</Typography>
+                </Stack>
                 <Stack direction="row" spacing={1}>
                   <Chip size="small" label={`+${formatAdvisorNumber(item.gainPercent)}%`}/>
                 </Stack>
