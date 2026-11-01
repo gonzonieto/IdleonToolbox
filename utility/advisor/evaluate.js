@@ -1,8 +1,6 @@
 import { getMaxDamage } from '@parsers/damage';
 import { getDropRate } from '@parsers/character';
-import { evaluateStamp, getGoldCostToMaxLevel } from '@parsers/world-1/stamps';
-import { isRiftBonusUnlocked } from '@parsers/world-4/rift';
-import { OPT } from '@parsers/accountOptions';
+import { stampBatch } from './stamps';
 import { bubblePurchase, DAMAGE_BUBBLES } from './alchemy';
 import { formatAdvisorNumber } from './format';
 
@@ -15,8 +13,10 @@ const TALENTS = {
 const valid = (n) => typeof n === 'number' && Number.isFinite(n);
 const label = (name) => name.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
-export const evaluateUpgrades = ({ objective = 'damage', account, characters = [], characterName }, calculate) => {
+export const evaluateUpgrades = ({ objective = 'damage', account, characters = [], characterName, batchSize = 10 }, calculate) => {
   const mode = objective === 'dropRate' ? 'dropRate' : 'damage';
+  const limit = Number.isFinite(batchSize) ? Math.max(1, Math.min(100, Math.floor(batchSize))) : 10;
+  const levelText = (n) => `${n} ${n === 1 ? 'level' : 'levels'}`;
   const selected = characters.find((c) => c.name === characterName) ?? characters[0];
   const result = { baseline: null, actions: [], checked: 0, unavailable: 0, blocked: {} };
   const block = (reason) => { result.blocked[reason] = (result.blocked[reason] ?? 0) + 1; };
@@ -46,7 +46,7 @@ export const evaluateUpgrades = ({ objective = 'damage', account, characters = [
       if (!TALENTS[mode].has(name) || !valid(baseLevel) || baseLevel < 1
         || !valid(maxLevel) || !valid(level) || level < baseLevel || baseLevel >= maxLevel
         || !valid(skillIndex)) continue;
-      const spend = Math.min(Math.floor(points), Math.floor(maxLevel - baseLevel));
+      const spend = Math.min(limit, Math.floor(points), Math.floor(maxLevel - baseLevel));
       if (spend < 1) continue;
       const upgrade = (t) => t.skillIndex === skillIndex
         ? { ...t, baseLevel: baseLevel + spend, level: level + spend } : t;
@@ -57,7 +57,7 @@ export const evaluateUpgrades = ({ objective = 'damage', account, characters = [
         talentPointsLeft: selected.talentPointsLeft.map((p, i) => i === tabIndex ? p - spend : p)
       };
       if (!character.flatTalents?.some((t) => t.skillIndex === skillIndex)) continue;
-      evaluate({ id: `${mode}:talent:${skillIndex}`, title: `Raise ${label(name)} to ${baseLevel + spend}`,
+      evaluate({ id: `${mode}:talent:${skillIndex}`, title: `Raise ${label(name)} by ${levelText(spend)}`, levelCount: spend, targetLevel: baseLevel + spend,
         cost: `${spend.toLocaleString('en-US')} talent points from tab ${tabIndex + 1}`,
         evidence: [`Allocated level ${baseLevel} → ${baseLevel + spend}; current cap ${maxLevel}`],
         nextStep: `On ${selected.name}, spend ${spend.toLocaleString('en-US')} points from tab ${tabIndex + 1} on ${label(name)}.`,
@@ -71,53 +71,55 @@ export const evaluateUpgrades = ({ objective = 'damage', account, characters = [
       const effects = mode === 'damage' ? ['Base_Damage', 'Total_Damage'] : ['Drop_Rate'];
       if (!effects.some((effect) => stamp.effect?.includes(effect)) || !valid(stamp.level)
         || stamp.level < 1 || !valid(stamp.maxLevel) || stamp.level > stamp.maxLevel) continue;
-      let unlock = null;
-      let gilded = false;
-      if (stamp.level === stamp.maxLevel) {
-        try {
-          unlock = evaluateStamp(stamp, account, characters, false, undefined, false, false);
-          if ((!unlock.hasMaterials || !unlock.enoughPlayerStorage)
-            && isRiftBonusUnlocked(account.rift, 'Stamp_Mastery') && Number(account.accountOptions?.[OPT.gildedStamps]) > 0) {
-            gilded = true;
-            unlock = evaluateStamp(stamp, account, characters, true, undefined, false, false);
-          }
-        } catch { block('stamp cap cost unavailable'); continue; }
-        if (!unlock.hasMaterials || !unlock.enoughPlayerStorage) { block('stamp materials or carry capacity'); continue; }
-      }
-      let cost;
-      try { cost = getGoldCostToMaxLevel({ ...stamp, maxLevel: stamp.level + 1 }, account); }
-      catch { result.unavailable++; continue; }
-      if (!valid(cost) || cost < 0 || !valid(account.currencies?.rawMoney)) { block('coin cost unavailable'); continue; }
-      if (cost > account.currencies.rawMoney) { block('insufficient coins'); continue; }
-      const acc = { ...account, stamps: { ...account.stamps,
-        [category]: stamps.map((s, i) => i === index ? { ...s, level: s.level + 1,
-          maxLevel: unlock ? s.maxLevel + Math.max(1, s.reqItemMultiplicationLevel) : s.maxLevel } : s) } };
+      const plan = stampBatch({ account, characters, category, index, limit });
+      if (plan.blocked) block(plan.blocked);
+      if (!plan.levels) continue;
       const name = label(stamp.displayName ?? stamp.rawName);
-      evaluate({ id: `${mode}:stamp:${category}:${stamp.rawName}`, title: `Raise ${name} to ${stamp.level + 1}`,
-        cost: `${formatAdvisorNumber(cost)} coins${unlock ? ` + ${formatAdvisorNumber(unlock.materialCost)} ${label(stamp.itemReq?.name ?? stamp.itemReq?.rawName ?? 'materials')}${gilded ? ' + 1 gilded stamp' : ''}` : ''}`,
-        evidence: [`Level ${stamp.level} → ${stamp.level + 1}; current cap ${stamp.maxLevel}`,
-          unlock ? 'Material cap unlock and next coin level are included; materials and carry capacity checked.' : 'Affordable with the coins in this save; no material cap increase required.'],
-        nextStep: unlock ? `Use ${unlock.bestCharacter?.name ?? 'a character with sufficient carry capacity'} to raise ${name}'s material cap${gilded ? ' with a gilded stamp' : ''}, then buy one level.` : `Buy one level of ${name} at the stamp vendor.`, route: '/account/world-1/stamps',
-        resource: 'coins', amount: cost }, selected, acc);
+      evaluate({ id: `${mode}:stamp:${category}:${stamp.rawName}`, title: `Raise ${name} by ${levelText(plan.levels)}`,
+        levelCount: plan.levels, targetLevel: plan.targetLevel,
+        cost: `${formatAdvisorNumber(plan.coins)} coins${plan.capUnlocks ? ` + ${formatAdvisorNumber(plan.materials)} ${label(stamp.itemReq?.name ?? stamp.itemReq?.rawName ?? 'materials')}${plan.gildedCount ? ` + ${plan.gildedCount} gilded ${plan.gildedCount === 1 ? 'stamp' : 'stamps'}` : ''}` : ''}`,
+        evidence: [`Level ${stamp.level} → ${plan.targetLevel}; starting cap ${stamp.maxLevel}`,
+          plan.capUnlocks ? `Material cap unlocks: ${plan.capUnlocks}. Cumulative materials, coin costs, carry capacity and gilded uses checked.` : 'Cumulative coin costs checked; no material cap increase required.'],
+        nextStep: plan.capUnlocks ? `Use ${plan.carrier ?? 'a character with sufficient carry capacity'} to unlock the material caps as needed, then buy ${levelText(plan.levels)} of ${name}${plan.gildedCount ? `, using ${plan.gildedCount} gilded ${plan.gildedCount === 1 ? 'stamp' : 'stamps'}` : ''}.` : `Buy ${levelText(plan.levels)} of ${name} at the stamp vendor.`,
+        route: '/account/world-1/stamps', resource: 'coins', amount: plan.coins }, selected, plan.account);
     }
   }
   for (const bubble of account.alchemy?.bubblesFlat ?? []) {
     if (!(mode === 'damage' ? DAMAGE_BUBBLES.has(bubble.bubbleName) : bubble.bubbleName === 'DROPPIN_LOADS')
       || !valid(bubble.level) || bubble.level < 1) continue;
-    let purchase;
-    try { purchase = bubblePurchase(account, bubble); } catch { block('alchemy cost unavailable'); continue; }
-    if (purchase.blocked) { block(`alchemy: ${purchase.blocked}`); continue; }
-    const upgrade = (b) => b.bubbleIndex === bubble.bubbleIndex ? { ...b, level: b.level + 1 } : b;
-    const acc = { ...account, alchemy: { ...account.alchemy,
-      bubblesFlat: account.alchemy.bubblesFlat.map(upgrade),
-      bubbles: Object.fromEntries(Object.entries(account.alchemy.bubbles).map(([key, rows]) => [key, rows.map(upgrade)])) } };
+    let acc = account;
+    let current = bubble;
+    let levels = 0;
+    let particleLevels = 0;
+    const spent = new Map();
+    const totals = new Map();
+    for (let step = 0; step < limit; step++) {
+      let purchase;
+      try { purchase = bubblePurchase(acc, current, spent); } catch { block('alchemy cost unavailable'); break; }
+      if (purchase.blocked) { block(`alchemy: ${purchase.blocked}`); break; }
+      for (const cost of purchase.costs) {
+        spent.set(cost.rawName, (spent.get(cost.rawName) ?? 0) + cost.amount);
+        totals.set(cost.rawName, { ...cost, amount: (totals.get(cost.rawName)?.amount ?? 0) + cost.amount });
+      }
+      levels++;
+      if (purchase.usingParticles) particleLevels++;
+      const upgrade = (b) => b.bubbleIndex === bubble.bubbleIndex ? { ...b, level: b.level + 1 } : b;
+      acc = { ...acc, alchemy: { ...acc.alchemy,
+        bubblesFlat: acc.alchemy.bubblesFlat.map(upgrade),
+        bubbles: Object.fromEntries(Object.entries(acc.alchemy.bubbles).map(([key, rows]) => [key, rows.map(upgrade)])) } };
+      current = { ...current, level: current.level + 1 };
+    }
+    if (!levels) continue;
+    const costs = [...totals.values()];
     const name = label(bubble.bubbleName);
-    evaluate({ id: `${mode}:bubble:${bubble.bubbleIndex}`, title: `Raise ${name} to ${bubble.level + 1}`,
-      cost: purchase.costs.map((c) => `${formatAdvisorNumber(c.amount)} ${label(c.name)}`).join(' + '),
-      evidence: [`Bubble level ${bubble.level} → ${bubble.level + 1}`, 'Costs include current cauldron discounts; no optional bargain tag or class discount assumed.',
-        ...(purchase.usingParticles ? ['Atom substitution and a remaining daily Boron use are included.'] : [])],
-      nextStep: `Buy one level of ${name}${purchase.usingParticles ? ', paying particles for the first ingredient' : ''}.`,
-      route: '/account/world-2/bubbles', resource: 'alchemy', amount: 1, costs: purchase.costs }, selected, acc);
+    evaluate({ id: `${mode}:bubble:${bubble.bubbleIndex}`, title: `Raise ${name} by ${levelText(levels)}`,
+      levelCount: levels, targetLevel: current.level,
+      cost: costs.map((c) => `${formatAdvisorNumber(c.amount)} ${label(c.name)}`).join(' + '),
+      evidence: [`Bubble level ${bubble.level} → ${current.level}`, 'Each level is priced separately; total materials, liquids and daily uses fit the save.',
+        'Costs include current cauldron discounts; no optional bargain tag or class discount assumed.',
+        ...(particleLevels ? [`${particleLevels} of these levels use particles for the first ingredient.`] : [])],
+      nextStep: `Buy ${levelText(levels)} of ${name}${particleLevels ? `, paying particles for the first ingredient on ${particleLevels} ${particleLevels === 1 ? 'level' : 'levels'}` : ''}.`,
+      route: '/account/world-2/bubbles', resource: 'alchemy', amount: levels, costs }, selected, acc);
   }
   result.actions.sort((a, b) => b.gainPercent - a.gainPercent || a.id.localeCompare(b.id));
   return result;

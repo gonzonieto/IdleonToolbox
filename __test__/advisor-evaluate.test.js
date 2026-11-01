@@ -11,7 +11,7 @@ describe('spendable and measured talent actions', () => {
   it('spends only points in the matching tab and preserves bonus levels', () => {
     const selected = character();
     const before = JSON.stringify(selected);
-    const result = evaluateUpgrades({ account: {}, characters: [selected] }, (c, peers) => {
+    const result = evaluateUpgrades({ account: {}, characters: [selected], batchSize: 25 }, (c, peers) => {
       expect(peers[0]).toBe(c);
       return metric(c);
     });
@@ -20,6 +20,11 @@ describe('spendable and measured talent actions', () => {
     expect(result.actions[0].gainPercent).toBeCloseTo(40);
     expect(result.actions[0].nextStep).toContain('12 points from tab 1');
     expect(JSON.stringify(selected)).toBe(before);
+  });
+  it('honors the chosen level count for talent groups too', () => {
+    const input = { account: {}, characters: [character()] };
+    expect(evaluateUpgrades(input, metric).actions[0].levelCount).toBe(10);
+    expect(evaluateUpgrades({ ...input, batchSize: 1 }, metric).actions[0].levelCount).toBe(1);
   });
   it('suppresses capped talents with thousands of spare points', () => {
     const capped = { ...talent, baseLevel: 100, level: 300 };
@@ -57,7 +62,7 @@ describe('affordable coin-only stamp actions', () => {
   it('verifies the next level, its cost and positive gain without mutating the account', () => {
     const acc = account(1000);
     const before = JSON.stringify(acc);
-    const result = evaluateUpgrades({ account: acc, characters: [{ name: 'Advanced' }] }, calculate);
+    const result = evaluateUpgrades({ account: acc, characters: [{ name: 'Advanced' }], batchSize: 1 }, calculate);
     expect(result.actions).toHaveLength(1);
     expect(result.actions[0]).toMatchObject({ after: 102, resource: 'coins' });
     expect(result.actions[0].amount).toBeGreaterThan(0);

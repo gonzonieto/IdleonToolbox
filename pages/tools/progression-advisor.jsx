@@ -17,12 +17,13 @@ const ProgressionAdvisor = () => {
   const { state } = useContext(AppContext);
   const [objective, setObjective] = useState('damage');
   const [selectedName, setSelectedName] = useState('');
+  const [batchSize, setBatchSize] = useState(10);
   const characters = state?.characters ?? [];
   const activeName = characters.some((entry) => entry?.name === selectedName)
     ? selectedName : characters[0]?.name ?? '';
   const evaluation = useMemo(() => state?.emptyAccount ? null : evaluateUpgrades({
-    objective, account: state?.account, characters, characterName: activeName
-  }), [objective, state?.account, state?.emptyAccount, characters, activeName]);
+    objective, account: state?.account, characters, characterName: activeName, batchSize
+  }), [objective, state?.account, state?.emptyAccount, characters, activeName, batchSize]);
   const result = useMemo(() => getRecommendations({
     objective, account: state?.account, characters, characterName: activeName, evaluation
   }), [objective, state?.account, characters, activeName, evaluation]);
@@ -36,7 +37,7 @@ const ProgressionAdvisor = () => {
         Specific upgrades calculated from your current save. Damage means displayed maximum damage, rather than AFK kills or active DPS.
       </Typography>
       <Alert severity="info">
-        Each change is evaluated independently with Toolbox’s formulas and checked against current points, caps, and coin balance. Results are ranked by gain; costs are shown separately.
+        Each card groups affordable levels of one upgrade. Costs are added level by level and the combined gain is calculated with Toolbox’s formulas. Cards are ranked by gain and may use the same resources.
       </Alert>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <FormControl fullWidth size="small">
@@ -52,6 +53,13 @@ const ProgressionAdvisor = () => {
           <Select labelId="advisor-character-label" value={activeName} label="Character"
                   onChange={(event) => setSelectedName(event.target.value)}>
             {characters.map((entry) => <MenuItem key={entry.name} value={entry.name}>{entry.name}</MenuItem>)}
+          </Select>
+        </FormControl>
+        <FormControl fullWidth size="small">
+          <InputLabel id="advisor-batch-label">Levels per suggestion</InputLabel>
+          <Select labelId="advisor-batch-label" value={batchSize} label="Levels per suggestion"
+                  onChange={(event) => setBatchSize(Number(event.target.value))}>
+            {[1, 10, 25, 100].map((n) => <MenuItem key={n} value={n}>Up to {n} {n === 1 ? 'level' : 'levels'}</MenuItem>)}
           </Select>
         </FormControl>
       </Stack>

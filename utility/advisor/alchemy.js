@@ -36,7 +36,7 @@ export const ownedBubbleResource = (account, rawName) => {
 
 // Match the Bubbles page's current-cauldron costs. Optional bargain tags and
 // class-discount previews are not assumed to be active.
-export const bubblePurchase = (account, bubble) => {
+export const bubblePurchase = (account, bubble, spent = new Map()) => {
   const rows = account.alchemy?.bubbles?.[bubble.cauldron];
   if (!rows || !Array.isArray(bubble.itemReq)) return { blocked: 'missing cost data' };
   const last = rows[14]?.level ?? 0;
@@ -56,16 +56,17 @@ export const bubblePurchase = (account, bubble) => {
         bargainTag: 1,
         smrt: Math.max(0.9, 1 - 0.1 * getAchievementStatus(account.achievements, 108))
       } });
-    const owned = ownedBubbleResource(account, item.rawName);
+    const owned = ownedBubbleResource(account, item.rawName) - (spent.get(item.rawName) ?? 0);
     if (!finite(amount) || amount < 0) return { blocked: 'missing cost data' };
     if (finite(owned) && owned >= amount) {
       costs.push({ rawName: item.rawName, name: bubbleResourceName(account, item), amount, owned });
       continue;
     }
     const particles = getBubbleParticleCost(account, bubble.index, item.rawName, itemIndex, amount);
-    const uses = Number(account.accountOptions?.[OPT.alternateParticles]);
-    if (particles > 0 && finite(account.atoms?.particles) && account.atoms.particles >= particles && uses >= 1) {
-      costs.push({ rawName: 'Particles', name: 'atom particles', amount: particles, owned: account.atoms.particles },
+    const uses = Number(account.accountOptions?.[OPT.alternateParticles]) - (spent.get('BoronUses') ?? 0);
+    const particlesLeft = account.atoms?.particles - (spent.get('Particles') ?? 0);
+    if (particles > 0 && finite(particlesLeft) && particlesLeft >= particles && uses >= 1) {
+      costs.push({ rawName: 'Particles', name: 'atom particles', amount: particles, owned: particlesLeft },
         { rawName: 'BoronUses', name: 'Boron upgrade use', amount: 1, owned: uses });
       usingParticles = true;
     } else return { blocked: finite(owned) ? 'insufficient resources' : 'missing resource data' };
