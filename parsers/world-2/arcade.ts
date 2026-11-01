@@ -10,6 +10,7 @@ import { getBestActiveCharacter } from '@parsers/talents';
 import { additiveGroup, createBreakdown, multiplier, percent } from '@parsers/breakdown';
 import type { StatBreakdown } from '@parsers/breakdown';
 import { OPT } from '@parsers/accountOptions';
+import { getStampBonus } from '@parsers/world-1/stamps';
 
 export const getArcade = (idleonData: IdleonData, account: Account, serverVars: ServerVars, characters?: any[]) => {
   const arcadeRaw = tryToParse((idleonData as any)?.ArcadeUpg) || (idleonData as any)?.ArcadeUpg;
@@ -29,6 +30,20 @@ export const getArcadeCapCost = (level: number): { cost: number, currency: 'roya
 
 // The shop data ends in placeholder rows ("+{%_who_knows") the game has not filled yet
 export const isArcadePlaceholder = (upgrade: any) => /who_knows/i.test(upgrade?.effect ?? '');
+
+export const getArcadeUpgradeBonus = (upgrade: any, account: Account, level = upgrade.level) =>
+  growth(upgrade.func, level, upgrade.x1, upgrade.x2, false)
+  * (level === ARCADE_OMEGA_LEVEL ? 6 : level === ARCADE_SUPER_LEVEL ? 2 : 1)
+  * (isCompanionBonusActive(account, 27) ? 2 : 1);
+
+export const getArcadeGoldCost = (account: any, level: number, index: number) => {
+  const discount = Math.max(0.6, 1 - getStampBonus(account, 'misc', 'StampC5', 0) / 100);
+  if (index === 39) return Math.round(discount * (5 + 3 * level));
+  if (index === 51 || index === 54 || index === 999) return Math.round(discount * (10 + 5 * level + Math.pow(level, 1.43)));
+  const power = index >= 70 ? 1.92 : index >= 62 ? 1.69 : index >= 55 && index !== 60 && index !== 61 ? 1.83 : 1.3;
+  return Math.round(discount * (index >= 55 && index !== 60 && index !== 61
+    ? 20 + 10 * level + Math.pow(level, power) : 5 + 3 * level + Math.pow(level, power)));
+};
 
 // game: the ArcadeShopInfo text, "{" -> NotateNumber(bonus, "Smaller") and "}" -> NotateNumber(1 + bonus/100,
 // "MultiplierInfo") with "#" stripped (the "}x_" entries are multipliers)
@@ -83,18 +98,14 @@ const parseArcade = (arcadeRaw: any, account: Account, serverVars: ServerVars, c
   const omegaBalls = (account as any)?.accountOptions?.[OPT.omegaArcadeBalls] ?? 0;
 
   const arcadeShopList = arcadeShop?.map((upgrade: any, index: number) => {
-    const { x1, x2, func } = upgrade;
     const level = arcadeRaw?.[index] ?? 0;
-    const bonus = growth(func, level, x1, x2, false);
     // game: "ArcadeBonus" (Lv 101 Super doubles the bonus, Lv 102 Omega multiplies it by 6)
-    const superBonus = level === ARCADE_OMEGA_LEVEL ? 6 : level === ARCADE_SUPER_LEVEL ? 2 : 1;
-    const companionBonus = isCompanionBonusActive(account, 27) ? 2 : 1;
     return {
       ...upgrade,
       level,
       active: (serverVars as any)?.ArcadeBonuses?.includes(index),
       rotationIndex: (serverVars as any)?.ArcadeBonuses?.indexOf(index),
-      bonus: bonus * superBonus * companionBonus,
+      bonus: getArcadeUpgradeBonus(upgrade, account, level),
       iconName: `PachiShopICON${index}`
     }
   });

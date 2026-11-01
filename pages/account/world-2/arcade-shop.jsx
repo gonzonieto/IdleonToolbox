@@ -8,10 +8,10 @@ import {
   ARCADE_SUPER_LEVEL,
   formatArcadeEffect,
   getArcadeCapCost,
+  getArcadeGoldCost,
   isArcadePlaceholder
 } from '@parsers/world-2/arcade';
 import styled from '@emotion/styled';
-import { getStampBonus } from '@parsers/world-1/stamps';
 import { NextSeo } from 'next-seo';
 import { CardTitleAndValue } from '@components/common/styles';
 import { CardWithBreakdown } from '@components/common/Breakdown/CardWithBreakdown';
@@ -38,26 +38,7 @@ const ArcadeShop = () => {
   };
 
   // game: "DungeonCalc:ArcadeCost" (gold balls below Lv 100; Royal and Omega balls are getArcadeCapCost)
-  const getCost = (level, upgradeIndex) => {
-    const arcadeStamp = getStampBonus(state?.account, 'misc', 'StampC5', 0);
-    const arcadeStampMath = Math.max(0.6, 1 - arcadeStamp / 100);
-
-    // Different cost formulas based on upgrade index
-    if (upgradeIndex === 39) {
-      return Math.round(arcadeStampMath * (5 + 3 * level));
-    } else if (upgradeIndex === 51 || upgradeIndex === 54 || upgradeIndex === 999) {
-      return Math.round(arcadeStampMath * (10 + (5 * level + Math.pow(level, 1.43))));
-    } else if (upgradeIndex >= 70) {
-      // Checked before the >= 62 tier - the 2 upgrades added in 2.3.525 (indices 70/71) use this curve.
-      return Math.round(arcadeStampMath * (20 + (10 * level + Math.pow(level, 1.92))));
-    } else if (upgradeIndex >= 62) {
-      return Math.round(arcadeStampMath * (20 + (10 * level + Math.pow(level, 1.69))));
-    } else if (upgradeIndex >= 55 && upgradeIndex !== 60 && upgradeIndex !== 61) {
-      return Math.round(arcadeStampMath * (20 + (10 * level + Math.pow(level, 1.83))));
-    } else {
-      return Math.round(arcadeStampMath * (5 + (3 * level + Math.pow(level, 1.3))));
-    }
-  }
+  const getCost = (level, upgradeIndex) => getArcadeGoldCost(state?.account, level, upgradeIndex);
 
   const getCostToMax = (level, upgradeIndex) => {
     let total = 0;

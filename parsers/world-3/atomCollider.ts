@@ -34,7 +34,7 @@ const UNFLOORED_ATOM_COST = 1e6;
 // game: AtomCollider("AtomBonuses", index). Hydrogen grows per day since the last stamp max-lv upgrade
 // (capped at 90), Carbon is +2% wizard damage per tower level above 50 (its level only raises the cap),
 // Fluoride is a cooking speed multiplier compounding once per Lv 30+ meal.
-const calcAtomBonus = (index: number, level: number, account: Account) => {
+export const calcAtomBonus = (index: number, level: number, account: Account) => {
   const baseBonus = level * (atomsInfo?.[index]?.baseBonus ?? 0);
   if (index === HYDROGEN_INDEX) {
     return Math.min(MAX_STAMP_REDUCTION, baseBonus * Number(account?.accountOptions?.[OPT.hydrogenDays] ?? 0));
@@ -112,6 +112,16 @@ const parseAtoms = (divinityRaw: any, atomsRaw: any, account: Account) => {
     stampReducer: atoms?.[HYDROGEN_INDEX]?.value ?? 0
   }
 }
+
+// The same per-level price used during parsing, evaluated against the current simulated account.
+export const getAtomUpgradeCost = (account: any, index: number, level: number) => getCost({
+  account, level, atomInfo: atomsInfo[index],
+  atomReductionFromAtom: calcAtomBonus(NEON_INDEX, account?.atoms?.atoms?.[NEON_INDEX]?.level ?? 0, account),
+  reduxSuperbit: isSuperbitUnlocked(account, 'Atom_Redux')?.unlocked ?? 0,
+  bubbleBonus: getBubbleBonus(account, 'ATOM_SPLIT', false),
+  atomColliderLevel: account?.towers?.data?.[8]?.level ?? 0,
+  stampBonusReduction: getStampsBonusByEffect(account, 'Lower_Atom_Upgrade_Costs')
+});
 
 const getCost = ({
                    account,

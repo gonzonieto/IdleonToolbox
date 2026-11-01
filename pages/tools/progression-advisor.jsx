@@ -100,7 +100,7 @@ const ProgressionAdvisor = () => {
         </Card>)}
       </> : null}
       <Typography variant="caption" color="text.secondary">
-        Coverage: selected learned passive talents, direct damage/drop-rate stamps including material cap unlocks, and supported direct-effect alchemy bubbles. Costs include materials, liquids, and eligible atom substitutions with remaining Boron uses. Other systems are not evaluated. Gains cannot be added together, and recommendations may spend the same resources.
+        Coverage: supported talents, stamps, alchemy bubbles, direct-effect Upgrade Vault purchases, current Arcade shop offers, the Neon atom, and shared Power/Oceanman statue levels using statues in storage. Costs include unlocks, caps, current resources and eligible substitutions. Other upgrades are not evaluated. Gains cannot be added together, and recommendations may spend the same resources.
       </Typography>
     </Stack>
   </Container>;

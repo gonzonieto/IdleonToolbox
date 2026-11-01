@@ -3,6 +3,7 @@ import { getDropRate } from '@parsers/character';
 import { stampBatch } from './stamps';
 import { bubblePurchase, DAMAGE_BUBBLES } from './alchemy';
 import { formatAdvisorNumber } from './format';
+import { additionalUpgradePlans } from './systems';
 
 // Only direct passive inputs are supported. Changing stat/all-talent buffs would require
 // reparsing derived character state, so those must not be simulated by editing one field.
@@ -124,6 +125,9 @@ export const evaluateUpgrades = ({ objective = 'damage', account, characters = [
       nextStep: `Buy ${levelText(levels)} of ${name}${particleLevels ? `, paying particles for the first ingredient on ${particleLevels} ${particleLevels === 1 ? 'level' : 'levels'}` : ''}.`,
       route: '/account/world-2/bubbles', resource: 'alchemy', amount: levels, costs }, selected, acc);
   }
+  const additional = additionalUpgradePlans({ account, characters, objective: mode, limit });
+  result.coverage = additional.coverage;
+  for (const plan of additional.plans) evaluate(plan.action, selected, plan.account);
   result.actions.sort((a, b) => b.gainPercent - a.gainPercent || a.id.localeCompare(b.id));
   return result;
 };

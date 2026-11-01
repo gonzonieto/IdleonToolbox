@@ -209,6 +209,8 @@ const getUpgradeCost = (upgrades: any, index: any, accountData: any) => {
     : Math.max(0.01, dartsBonusReduction) * companionMulti * sushiDiscount * Math.pow(1.1, Math.max(0, index - 61)) * baseCost;
 }
 
+export { getUpgradeCost as getVaultUpgradeCost, calcUpgradeVaultBonus as calculateVaultBonus };
+
 export const getUpgradeVaultBonus = (upgrades: any, index: any) => {
   return upgrades?.[index]?.bonus || 0;
 }

@@ -20,6 +20,10 @@ export const getRecommendations = ({ objective = 'damage', account, characters =
   const metric = mode === 'damage' ? 'maximum damage' : 'drop-rate multiplier';
   diagnostics.push(`Current ${metric}: ${formatAdvisorNumber(evaluation.baseline)}.`);
   diagnostics.push(`${evaluation.checked} supported changes evaluated for this character.`);
+  for (const [system, summary] of Object.entries(evaluation.coverage ?? {})) {
+    const skipped = Object.entries(summary.skipped).map(([reason, count]) => `${count} ${reason}`).join(', ');
+    diagnostics.push(`${system}: ${summary.evaluated} evaluated${skipped ? `; ${skipped}` : ''}.`);
+  }
   for (const [reason, count] of Object.entries(evaluation.blocked ?? {})) {
     diagnostics.push(`${count} skipped: ${reason}.`);
   }
